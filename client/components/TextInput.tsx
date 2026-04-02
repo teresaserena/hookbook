@@ -1,3 +1,5 @@
+import { Input } from '@chakra-ui/react'
+
 interface TextInputProps {
   name: string
   value: string
@@ -8,7 +10,7 @@ interface TextInputProps {
 
 export function TextInput({ name, value, onChange, placeholder, required }: TextInputProps) {
   return (
-    <input
+    <Input
       type="text"
       name={name}
       id={name}
