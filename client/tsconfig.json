@@ -8,7 +8,10 @@
     "skipLibCheck": true,
     "isolatedModules": true,
     "moduleDetection": "force",
-    "noEmit": true
+    "noEmit": true,
+    "paths": {
+      "@/*": ["./*"]                                                       
+    } 
   },
   "include": ["."]
 }
