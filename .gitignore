@@ -2,6 +2,7 @@ node_modules/
 dist/
 STORIES.md
 *.code-workspace
+data/
 
 *storybook.log
 storybook-static
