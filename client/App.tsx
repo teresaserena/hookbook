@@ -10,10 +10,19 @@ function App() {
   const [yarnColor, setYarnColor] = useState('')
   const [startDate, setStartDate] = useState('')
 
+  async function handleSubmit(e: SubmitEvent) {
+    e.preventDefault();
+    await fetch('/api/savepattern', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectName, yarnName, yarnGauge, yarnMaterial, yarnColor, startDate }),
+    });
+  }
+
   return (
     <Container maxW="lg" py={10}>
       <Heading mb={8}>Hookbook</Heading>
-      <Box as="form">
+      <Box as="form" onSubmit={handleSubmit}>
         <Fieldset.Root>
           <Stack gap={6}>
             <Field.Root required>
