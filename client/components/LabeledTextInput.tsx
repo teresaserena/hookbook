@@ -1,5 +1,4 @@
-import { Field } from '@chakra-ui/react'
-import { TextInput } from './TextInput'
+import { Field, Input } from '@chakra-ui/react'
 
 interface LabeledTextInputProps {
   label: string
@@ -14,10 +13,12 @@ export function LabeledTextInput({ label, name, value, onChange, placeholder, re
   return (
     <Field.Root required={required}>
       <Field.Label>{label}</Field.Label>
-      <TextInput
+      <Input
+        type="text"
         name={name}
+        id={name}
         value={value}
-        onChange={onChange}
+        onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         required={required}
       />
