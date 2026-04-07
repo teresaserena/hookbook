@@ -7,3 +7,5 @@ data/
 *storybook.log
 storybook-static
 node_modules
+__screenshots__/
+.vitest-attachments/

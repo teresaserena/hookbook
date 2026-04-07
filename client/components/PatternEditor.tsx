@@ -35,6 +35,7 @@ export function PatternEditor({ lines, onChange }: PatternEditorProps) {
         <Flex gap={2}>
           <Input
             type="text"
+            id="pattern-new-line"
             placeholder="e.g. 2sc 8[sc inc sc] 2sc"
             value={currentLine}
             onChange={(e) => setCurrentLine(e.target.value)}
@@ -48,6 +49,7 @@ export function PatternEditor({ lines, onChange }: PatternEditorProps) {
             <Text fontWeight="bold" flexShrink={0} w="2ch" textAlign="right">{i + 1}.</Text>
             <Input
               type="text"
+              id={`pattern-line-${i}`}
               value={line}
               onChange={(e) => handleUpdateLine(i, e.target.value)}
               onFocus={() => setSelectedLine(i)}
