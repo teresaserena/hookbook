@@ -58,6 +58,10 @@ describe('parseStitchCount', () => {
       expect(parseStitchCount('[sc tr sc]')).toBe(3)
     })
 
+    it('counts "2(sc tr sc)" with parentheses as 6', () => {
+      expect(parseStitchCount('2(sc tr sc)')).toBe(6)
+    })
+
     it('handles brackets with surrounding stitches', () => {
       // 2sc + 8[sc inc sc] + 2sc = 2 + 8*(1+2+1) + 2 = 36
       expect(parseStitchCount('2sc 8[sc inc sc] 2sc')).toBe(36)
