@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { Box, Button, Fieldset, Flex, Input, Stack, Text } from '@chakra-ui/react'
+import { useMemo, useState } from 'react'
+import { Button, Fieldset, Flex, Input, Stack, Text } from '@chakra-ui/react'
+import { parseStitchCount } from '../utils/stitchCounter'
 
 interface PatternEditorProps {
   lines: string[]
@@ -9,6 +10,14 @@ interface PatternEditorProps {
 export function PatternEditor({ lines, onChange }: PatternEditorProps) {
   const [currentLine, setCurrentLine] = useState('')
   const [selectedLine, setSelectedLine] = useState<number | null>(null)
+
+  const stitchCounts = useMemo(() =>
+    lines.map((line, i) => {
+      const prev = i > 0 ? parseStitchCount(lines[i - 1]) : undefined
+      return parseStitchCount(line, prev)
+    }),
+    [lines]
+  )
 
   function handleAddLine() {
     if (!currentLine.trim()) return
@@ -44,7 +53,9 @@ export function PatternEditor({ lines, onChange }: PatternEditorProps) {
           <Button onClick={handleAddLine} flexShrink={0}> Add </Button>
         </Flex>
 
-        {lines.map((line, i) => (
+        {lines.map((line, i) => {
+          const stitchCount = stitchCounts[i]
+          return (
           <Flex key={i} gap={2} align="center">
             <Text fontWeight="bold" flexShrink={0} w="2ch" textAlign="right">{i + 1}.</Text>
             <Input
@@ -58,6 +69,11 @@ export function PatternEditor({ lines, onChange }: PatternEditorProps) {
               opacity={selectedLine === i ? 1 : 0.6}
               _dark={{ bg: selectedLine === i ? undefined : 'gray.700' }}
             />
+            {stitchCount > 0 && (
+              <Text fontSize="sm" color="gray.500" flexShrink={0} w="5ch" textAlign="right">
+                ({stitchCount})
+              </Text>
+            )}
             <Button
               size="sm"
               colorPalette="red"
@@ -68,7 +84,8 @@ export function PatternEditor({ lines, onChange }: PatternEditorProps) {
               X
             </Button>
           </Flex>
-        ))}
+          )
+        })}
       </Stack>
     </Fieldset.Root>
   )
