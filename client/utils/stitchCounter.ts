@@ -20,7 +20,7 @@ const sortedAbbreviations = (Object.values(StitchTypes) as string[])
   .sort((a, b) => b.length - a.length)
 
 const TOKEN_REGEX = new RegExp(
-  `(\\d+|${sortedAbbreviations.join('|')}|[\\[\\]{}])`,
+  `(\\d+|${sortedAbbreviations.join('|')}|[\\[\\]{}()])`,
   'gi'
 )
 
@@ -37,12 +37,12 @@ export function parseStitchCount(line: string, previousCount?: number): number {
     while (i < tokens.length) {
       const token = tokens[i]
 
-      if (token === ']' || token === '}') {
+      if (token === ']' || token === '}' || token === ')') {
         i++
         return total
       }
 
-      if (token === '[' || token === '{') {
+      if (token === '[' || token === '{' || token === '(') {
         i++
         total += parseGroup() * (multiplier ?? 1)
         multiplier = null
