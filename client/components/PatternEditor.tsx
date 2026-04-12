@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Button, Fieldset, Flex, Input, Stack, Text } from '@chakra-ui/react'
+import { Badge, Button, Fieldset, Flex, Input, Stack, Text } from '@chakra-ui/react'
 import { parseStitchCount } from '../utils/stitchCounter'
 
 interface PatternEditorProps {
@@ -39,7 +39,9 @@ export function PatternEditor({ lines, onChange }: PatternEditorProps) {
 
   return (
     <Fieldset.Root>
-      <Fieldset.Legend>Pattern</Fieldset.Legend>
+      <Fieldset.Legend fontWeight="bold" color="pink.500" fontSize="md" borderBottom="2px solid" borderColor="pink.200" pb={1}>
+        Pattern
+      </Fieldset.Legend>
       <Stack gap={3}>
         <Flex gap={2}>
           <Input
@@ -49,15 +51,28 @@ export function PatternEditor({ lines, onChange }: PatternEditorProps) {
             value={currentLine}
             onChange={(e) => setCurrentLine(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddLine(); } }}
+            borderRadius="lg"
+            borderWidth="1px"
+            borderColor="gray.200"
+            _dark={{ borderColor: 'gray.600' }}
           />
-          <Button onClick={handleAddLine} flexShrink={0}> Add </Button>
+          <Button onClick={handleAddLine} flexShrink={0} colorPalette="pink" borderRadius="lg" _hover={{ transform: 'scale(1.05)', opacity: 0.9 }} transition="all 0.15s"> Add </Button>
         </Flex>
 
         {lines.map((line, i) => {
           const stitchCount = stitchCounts[i]
           return (
-          <Flex key={i} gap={2} align="center">
-            <Text fontWeight="bold" flexShrink={0} w="2ch" textAlign="right">{i + 1}.</Text>
+          <Flex
+            key={i}
+            gap={2}
+            align="center"
+            bg={i % 2 === 0 ? 'gray.100' : 'transparent'}
+            _dark={{ bg: i % 2 === 0 ? 'gray.700' : 'transparent' }}
+            px={2}
+            py={1}
+            borderRadius="lg"
+          >
+            <Text fontWeight="bold" flexShrink={0} w="2ch" textAlign="right" color="gray.400">{i + 1}.</Text>
             <Input
               type="text"
               id={`pattern-line-${i}`}
@@ -65,21 +80,29 @@ export function PatternEditor({ lines, onChange }: PatternEditorProps) {
               onChange={(e) => handleUpdateLine(i, e.target.value)}
               onFocus={() => setSelectedLine(i)}
               onBlur={() => setSelectedLine(null)}
-              bg={selectedLine === i ? undefined : 'gray.100'}
-              opacity={selectedLine === i ? 1 : 0.6}
-              _dark={{ bg: selectedLine === i ? undefined : 'gray.700' }}
+              borderRadius="lg"
+              bg={selectedLine === i ? 'white' : 'transparent'}
+              _dark={{ bg: selectedLine === i ? 'gray.700' : 'transparent' }}
+              borderWidth="1px"
+              borderColor={selectedLine === i ? 'pink.300' : 'gray.200'}
+              _dark={{ borderColor: selectedLine === i ? 'pink.300' : 'gray.600' }}
+              _hover={{ borderColor: 'pink.200' }}
             />
             {stitchCount > 0 && (
-              <Text fontSize="sm" color="gray.500" flexShrink={0} w="5ch" textAlign="right">
-                ({stitchCount})
-              </Text>
+              <Badge colorPalette="pink" variant="subtle" borderRadius="full" flexShrink={0}>
+                {stitchCount}
+              </Badge>
             )}
             <Button
               size="sm"
               colorPalette="red"
-              variant="outline"
+              variant="ghost"
               flexShrink={0}
               onClick={() => handleRemoveLine(i)}
+              borderRadius="full"
+              _hover={{ bg: 'red.100', transform: 'scale(1.1)' }}
+              _dark={{ _hover: { bg: 'red.900' } }}
+              transition="all 0.15s"
             >
               X
             </Button>

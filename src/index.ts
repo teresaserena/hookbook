@@ -11,11 +11,34 @@ app.use(express.static(path.join(__dirname, "../dist")));
 
 const DATA_DIR = path.join(__dirname, "../data");
 
-export function listPatternFiles(): string[] {
+export interface PatternSummary {
+  filename: string;
+  projectName: string;
+  yarnGauge: string;
+  yarnColor: string;
+  startDate: string;
+  patternLines: string[];
+  yarnName?: string;
+  yarnMaterial?: string;
+}
+
+export function listPatternFiles(): PatternSummary[] {
   if (!fs.existsSync(DATA_DIR)) return [];
-  return (fs.readdirSync(DATA_DIR) as unknown as string[]).filter((f) =>
+  const files = (fs.readdirSync(DATA_DIR) as unknown as string[]).filter((f) =>
     f.endsWith(".json")
   );
+
+  const results: PatternSummary[] = [];
+  for (const filename of files) {
+    try {
+      const content = fs.readFileSync(path.join(DATA_DIR, filename), "utf-8");
+      const data = JSON.parse(content);
+      results.push({ filename, ...data });
+    } catch {
+      // Skip files that can't be parsed
+    }
+  }
+  return results;
 }
 
 export function loadPatternFile(
