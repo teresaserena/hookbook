@@ -24,7 +24,6 @@ export function LabeledTextInput({ label, name, value, onChange, placeholder, re
         borderRadius="lg"
         borderWidth="1px"
         borderColor="gray.200"
-        _dark={{ borderColor: 'gray.600' }}
       />
     </Field.Root>
   )

@@ -54,20 +54,19 @@ export function PatternEditor({ lines, onChange }: PatternEditorProps) {
             borderRadius="lg"
             borderWidth="1px"
             borderColor="gray.200"
-            _dark={{ borderColor: 'gray.600' }}
           />
           <Button onClick={handleAddLine} flexShrink={0} colorPalette="pink" borderRadius="lg" _hover={{ transform: 'scale(1.05)', opacity: 0.9 }} transition="all 0.15s"> Add </Button>
         </Flex>
 
-        {lines.map((line, i) => {
+        {Array.from({ length: lines.length }, (_, k) => lines.length - 1 - k).map((i, displayIdx) => {
+          const line = lines[i]
           const stitchCount = stitchCounts[i]
           return (
           <Flex
             key={i}
             gap={2}
             align="center"
-            bg={i % 2 === 0 ? 'gray.100' : 'transparent'}
-            _dark={{ bg: i % 2 === 0 ? 'gray.700' : 'transparent' }}
+            bg={displayIdx % 2 === 0 ? 'gray.100' : 'transparent'}
             px={2}
             py={1}
             borderRadius="lg"
@@ -82,10 +81,9 @@ export function PatternEditor({ lines, onChange }: PatternEditorProps) {
               onBlur={() => setSelectedLine(null)}
               borderRadius="lg"
               bg={selectedLine === i ? 'white' : 'transparent'}
-              _dark={{ bg: selectedLine === i ? 'gray.700' : 'transparent' }}
+              color={selectedLine === i ? 'gray.900' : 'inherit'}
               borderWidth="1px"
               borderColor={selectedLine === i ? 'pink.300' : 'gray.200'}
-              _dark={{ borderColor: selectedLine === i ? 'pink.300' : 'gray.600' }}
               _hover={{ borderColor: 'pink.200' }}
             />
             {stitchCount > 0 && (
@@ -101,7 +99,6 @@ export function PatternEditor({ lines, onChange }: PatternEditorProps) {
               onClick={() => handleRemoveLine(i)}
               borderRadius="full"
               _hover={{ bg: 'red.100', transform: 'scale(1.1)' }}
-              _dark={{ _hover: { bg: 'red.900' } }}
               transition="all 0.15s"
             >
               X

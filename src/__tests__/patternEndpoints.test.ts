@@ -1,121 +1,188 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import fs from 'fs'
+import fs from 'fs/promises'
+import fsSync from 'fs'
 
+vi.mock('fs/promises')
 vi.mock('fs')
 
-import { listPatternFiles, loadPatternFile } from '../index'
+import { listPatterns, loadPattern, pruneVersions } from '../index'
 
-describe('listPatternFiles', () => {
+describe('listPatterns', () => {
   beforeEach(() => {
     vi.resetAllMocks()
   })
 
-  it('returns pattern data objects for each .json file', () => {
-    vi.mocked(fs.existsSync).mockReturnValue(true)
-    ;(vi.mocked(fs.readdirSync) as ReturnType<typeof vi.fn>).mockReturnValue(
-      ['butts.json', 'scarf.json', 'notes.txt']
-    )
-    vi.mocked(fs.readFileSync)
-      .mockReturnValueOnce(JSON.stringify({
-        projectName: 'butts',
-        yarnGauge: 'worsted',
-        yarnColor: 'black',
-        startDate: '2026-04-02',
-        patternLines: ['2sc inc 2sc'],
-      }))
-      .mockReturnValueOnce(JSON.stringify({
-        projectName: 'scarf',
+  it('returns pattern summaries from latest version files', async () => {
+    vi.mocked(fsSync.existsSync).mockReturnValue(true)
+    ;(vi.mocked(fs.readdir) as ReturnType<typeof vi.fn>).mockResolvedValueOnce([
+      { name: 'Scarf_20260410-080000', isDirectory: () => true },
+      { name: 'Hat_20260411-090000', isDirectory: () => true },
+    ])
+
+    // versions/ listing for each pattern
+    ;(vi.mocked(fs.readdir) as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(['v_20260410-080000-000.json'])
+      .mockResolvedValueOnce(['v_20260411-090000-000.json', 'v_20260411-100000-000.json'])
+
+    vi.mocked(fs.readFile)
+      .mockResolvedValueOnce(JSON.stringify({
+        projectName: 'Scarf',
         yarnGauge: 'dk',
         yarnColor: 'blue',
         startDate: '2026-03-15',
         patternLines: ['10sc'],
+      }))
+      .mockResolvedValueOnce(JSON.stringify({
+        projectName: 'Hat',
+        yarnGauge: 'worsted',
+        yarnColor: 'red',
+        startDate: '2026-04-01',
+        patternLines: ['6sc'],
       }))
 
-    const result = listPatternFiles()
+    const result = await listPatterns()
     expect(result).toEqual([
       {
-        filename: 'butts.json',
-        projectName: 'butts',
-        yarnGauge: 'worsted',
-        yarnColor: 'black',
-        startDate: '2026-04-02',
-        patternLines: ['2sc inc 2sc'],
-      },
-      {
-        filename: 'scarf.json',
-        projectName: 'scarf',
+        patternId: 'Scarf_20260410-080000',
+        projectName: 'Scarf',
+        startDate: '2026-03-15',
+        latestVersion: 'v_20260410-080000-000.json',
         yarnGauge: 'dk',
         yarnColor: 'blue',
-        startDate: '2026-03-15',
         patternLines: ['10sc'],
+      },
+      {
+        patternId: 'Hat_20260411-090000',
+        projectName: 'Hat',
+        startDate: '2026-04-01',
+        latestVersion: 'v_20260411-100000-000.json',
+        yarnGauge: 'worsted',
+        yarnColor: 'red',
+        patternLines: ['6sc'],
       },
     ])
   })
 
-  it('returns empty array when data directory does not exist', () => {
-    vi.mocked(fs.existsSync).mockReturnValue(false)
+  it('returns empty array when data directory does not exist', async () => {
+    vi.mocked(fsSync.existsSync).mockReturnValue(false)
 
-    const result = listPatternFiles()
+    const result = await listPatterns()
     expect(result).toEqual([])
   })
 
-  it('skips files that fail to parse', () => {
-    vi.mocked(fs.existsSync).mockReturnValue(true)
-    ;(vi.mocked(fs.readdirSync) as ReturnType<typeof vi.fn>).mockReturnValue(
-      ['good.json', 'bad.json']
-    )
-    vi.mocked(fs.readFileSync)
-      .mockReturnValueOnce(JSON.stringify({
-        projectName: 'good',
-        yarnGauge: 'bulky',
-        yarnColor: 'red',
-        startDate: '2026-01-01',
-        patternLines: ['sc'],
-      }))
-      .mockReturnValueOnce('not valid json{{{')
+  it('skips directories without version files', async () => {
+    vi.mocked(fsSync.existsSync).mockReturnValue(true)
+    ;(vi.mocked(fs.readdir) as ReturnType<typeof vi.fn>).mockResolvedValueOnce([
+      { name: 'Good_20260410-080000', isDirectory: () => true },
+      { name: 'Empty_20260411-090000', isDirectory: () => true },
+    ])
 
-    const result = listPatternFiles()
+    ;(vi.mocked(fs.readdir) as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(['v_20260410-080000-000.json'])
+      .mockResolvedValueOnce([])  // empty versions/
+
+    vi.mocked(fs.readFile).mockResolvedValueOnce(JSON.stringify({
+      projectName: 'Good',
+      yarnGauge: 'bulky',
+      yarnColor: 'red',
+      startDate: '2026-01-01',
+      patternLines: ['sc'],
+    }))
+
+    const result = await listPatterns()
     expect(result).toEqual([
       {
-        filename: 'good.json',
-        projectName: 'good',
+        patternId: 'Good_20260410-080000',
+        projectName: 'Good',
+        startDate: '2026-01-01',
+        latestVersion: 'v_20260410-080000-000.json',
         yarnGauge: 'bulky',
         yarnColor: 'red',
-        startDate: '2026-01-01',
         patternLines: ['sc'],
       },
     ])
   })
 })
 
-describe('loadPatternFile', () => {
+describe('loadPattern', () => {
   beforeEach(() => {
     vi.resetAllMocks()
   })
 
-  it('returns parsed JSON for a valid filename', () => {
-    const content = JSON.stringify({ projectName: 'test' })
-    vi.mocked(fs.existsSync).mockReturnValue(true)
-    vi.mocked(fs.readFileSync).mockReturnValue(content)
+  it('returns parsed JSON from latest version file', async () => {
+    vi.mocked(fsSync.existsSync).mockReturnValue(true)
+    ;(vi.mocked(fs.readdir) as ReturnType<typeof vi.fn>).mockResolvedValue([
+      'v_20260410-080000-000.json',
+      'v_20260410-090000-000.json',
+    ])
+    vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify({ projectName: 'test' }))
 
-    const result = loadPatternFile('test.json')
+    const result = await loadPattern('Test_20260410-080000')
     expect(result).toEqual({ ok: true, data: { projectName: 'test' } })
   })
 
-  it('rejects filenames with path traversal (..)', () => {
-    const result = loadPatternFile('../etc/passwd')
-    expect(result).toEqual({ ok: false, error: 'Invalid filename.' })
+  it('rejects patternId with path traversal (..)', async () => {
+    const result = await loadPattern('../etc/passwd')
+    expect(result).toEqual({ ok: false, error: 'Invalid pattern ID.' })
   })
 
-  it('rejects filenames with slashes', () => {
-    const result = loadPatternFile('sub/dir.json')
-    expect(result).toEqual({ ok: false, error: 'Invalid filename.' })
+  it('rejects patternId with slashes', async () => {
+    const result = await loadPattern('sub/dir')
+    expect(result).toEqual({ ok: false, error: 'Invalid pattern ID.' })
   })
 
-  it('returns error when file does not exist', () => {
-    vi.mocked(fs.existsSync).mockReturnValue(false)
+  it('returns error when pattern directory does not exist', async () => {
+    vi.mocked(fsSync.existsSync).mockReturnValue(false)
 
-    const result = loadPatternFile('missing.json')
-    expect(result).toEqual({ ok: false, error: 'File not found.' })
+    const result = await loadPattern('Missing_20260410-080000')
+    expect(result).toEqual({ ok: false, error: 'Pattern not found.' })
+  })
+
+  it('returns error when versions directory is empty', async () => {
+    vi.mocked(fsSync.existsSync).mockReturnValue(true)
+    ;(vi.mocked(fs.readdir) as ReturnType<typeof vi.fn>).mockResolvedValue([])
+
+    const result = await loadPattern('Empty_20260410-080000')
+    expect(result).toEqual({ ok: false, error: 'Pattern not found.' })
+  })
+})
+
+describe('pruneVersions', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+  })
+
+  it('deletes oldest files when over limit', async () => {
+    const files = Array.from({ length: 12 }, (_, i) =>
+      `v_20260401-${String(i).padStart(6, '0')}-000.json`
+    )
+    ;(vi.mocked(fs.readdir) as ReturnType<typeof vi.fn>).mockResolvedValue(files)
+    vi.mocked(fs.unlink).mockResolvedValue(undefined)
+
+    await pruneVersions('/fake/path/versions', 10)
+
+    expect(fs.unlink).toHaveBeenCalledTimes(2)
+    expect(fs.unlink).toHaveBeenCalledWith(expect.stringContaining('v_20260401-000000-000.json'))
+    expect(fs.unlink).toHaveBeenCalledWith(expect.stringContaining('v_20260401-000001-000.json'))
+  })
+
+  it('does nothing when under limit', async () => {
+    const files = ['v_20260401-080000-000.json', 'v_20260401-090000-000.json']
+    ;(vi.mocked(fs.readdir) as ReturnType<typeof vi.fn>).mockResolvedValue(files)
+
+    await pruneVersions('/fake/path/versions', 10)
+
+    expect(fs.unlink).not.toHaveBeenCalled()
+  })
+
+  it('does nothing when exactly at limit', async () => {
+    const files = Array.from({ length: 10 }, (_, i) =>
+      `v_20260401-${String(i).padStart(6, '0')}-000.json`
+    )
+    ;(vi.mocked(fs.readdir) as ReturnType<typeof vi.fn>).mockResolvedValue(files)
+
+    await pruneVersions('/fake/path/versions', 10)
+
+    expect(fs.unlink).not.toHaveBeenCalled()
   })
 })

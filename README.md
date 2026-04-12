@@ -1,11 +1,11 @@
 # Hookbook
 
-A crochet pattern editor for freehanders. Create, edit, and save patterns row by row instead of scribbling in a notebook you can't undo.
+A crochet pattern editor for freehanders. Create, edit, and save patterns row by row instead of scribbling in a notebook you can't undo. Does some basic versioning in case you need to go back and lose your place.
 
 ## What it does
 
 - Enter pattern rows as free text or using standard crochet abbreviations (sc, dc, hdc, tr, etc.)
-- Automatic stitch counting that understands multipliers (`2sc`), repeats (`8[sc inc sc]`), and special stitches (inc, dec, yo)
+- Automatic stitch counting that understands multipliers (`2sc` or `ch 3`), repeats (`8[sc inc sc]`), and special stitches (inc, dec, yo)
 - Track yarn details alongside your pattern
 - Save and reopen patterns for editing
 

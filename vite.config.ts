@@ -11,6 +11,11 @@ const dirname = typeof __dirname !== 'undefined' ? __dirname : path.dirname(file
 export default defineConfig({
   plugins: [react()],
   root: 'client',
+  server: {
+    proxy: {
+      '/api': 'http://localhost:3000'
+    }
+  },
   build: {
     outDir: '../dist',
     emptyOutDir: true

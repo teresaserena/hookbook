@@ -33,6 +33,7 @@ export function parseStitchCount(line: string, previousCount?: number): number {
   function parseGroup(): number {
     let total = 0
     let multiplier: number | null = null
+    let lastContribution = 0
 
     while (i < tokens.length) {
       const token = tokens[i]
@@ -44,13 +45,28 @@ export function parseStitchCount(line: string, previousCount?: number): number {
 
       if (token === '[' || token === '{' || token === '(') {
         i++
-        total += parseGroup() * (multiplier ?? 1)
+        const groupTotal = parseGroup() * (multiplier ?? 1)
+        total += groupTotal
+        lastContribution = groupTotal
         multiplier = null
         continue
       }
 
       if (/^\d+$/.test(token)) {
-        multiplier = parseInt(token, 10)
+        const num = parseInt(token, 10)
+        // Lookahead: if next token is a stitch or bracket, this is a pre-multiplier
+        const next = i + 1 < tokens.length ? tokens[i + 1] : null
+        const nextIsStitchOrBracket = next !== null && (
+          /^[a-z]/i.test(next) || next === '[' || next === '{' || next === '('
+        )
+        if (lastContribution > 0 && multiplier === null && !nextIsStitchOrBracket) {
+          // Post-fix: "ch3" — retroactively multiply the last stitch
+          total += lastContribution * (num - 1)
+          lastContribution = lastContribution * num
+        } else {
+          multiplier = num
+          lastContribution = 0
+        }
         i++
         continue
       }
@@ -58,7 +74,9 @@ export function parseStitchCount(line: string, previousCount?: number): number {
       const lower = token.toLowerCase()
 
       if (lower === StitchTypes.Repeat) {
-        total += previousCount ?? 0
+        const contribution = previousCount ?? 0
+        total += contribution
+        lastContribution = contribution
         multiplier = null
         i++
         continue
@@ -66,8 +84,12 @@ export function parseStitchCount(line: string, previousCount?: number): number {
 
       const value = STITCH_VALUES.get(lower)
       if (value !== undefined) {
-        total += value * (multiplier ?? 1)
+        const contribution = value * (multiplier ?? 1)
+        total += contribution
+        lastContribution = contribution
         multiplier = null
+      } else {
+        lastContribution = 0
       }
 
       i++
