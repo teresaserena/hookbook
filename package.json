@@ -6,6 +6,7 @@
   "scripts": {
     "build": "vite build && tsc",
     "start": "ts-node src/index.ts",
+    "dev": "concurrently --names server,client --prefix-colors blue,magenta \"npm run dev:server\" \"npm run dev:client\"",
     "dev:server": "ts-node src/index.ts",
     "dev:client": "vite",
     "test": "vitest run",
@@ -42,6 +43,7 @@
     "@vitejs/plugin-react": "^6.0.1",
     "@vitest/browser-playwright": "^4.1.2",
     "@vitest/coverage-v8": "^4.1.2",
+    "concurrently": "^9.2.1",
     "eslint": "^10.1.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-storybook": "^10.3.3",

@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Box, Button, Container, Heading, Input, Stack, Field, Fieldset, Flex, NativeSelect, Alert, CloseButton } from '@chakra-ui/react'
+import { Box, Button, Container, Heading, Input, Stack, Field, Fieldset, Flex, Alert, CloseButton, Text } from '@chakra-ui/react'
 import { LabeledTextInput } from './components/LabeledTextInput'
 import { YarnFields, type YarnState } from './components/YarnFields'
 import { PatternEditor } from './components/PatternEditor'
 import { validatePattern, type PatternData } from './utils/validatePattern'
+import { PatternCard, type PatternCardData } from './components/PatternCard'
 
 function isFormDirty(projectName: string, yarn: YarnState, startDate: string, patternLines: string[]): boolean {
   return (
@@ -41,17 +42,20 @@ function App() {
   const [startDate, setStartDate] = useState('')
   const [patternLines, setPatternLines] = useState<string[]>([])
 
-  const [savedPatterns, setSavedPatterns] = useState<string[]>([])
-  const [selectedPattern, setSelectedPattern] = useState('')
-  const [loadErrors, setLoadErrors] = useState<string[] | null>(null)
+  const [savedPatterns, setSavedPatterns] = useState<PatternCardData[]>([])
   const [sourceFile, setSourceFile] = useState<string | null>(null)
+  const [loadErrors, setLoadErrors] = useState<string[] | null>(null)
 
   useEffect(() => {
+    fetchPatterns()
+  }, [])
+
+  function fetchPatterns() {
     fetch('/api/patterns')
       .then((res) => res.json())
-      .then((files: string[]) => setSavedPatterns(files))
+      .then((data: PatternCardData[]) => setSavedPatterns(data))
       .catch(() => setSavedPatterns([]))
-  }, [])
+  }
 
   function guardDirtyForm(): boolean {
     if (isFormDirty(projectName, yarn, startDate, patternLines)) {
@@ -60,40 +64,17 @@ function App() {
     return true
   }
 
-  function handleValidationResult(input: unknown) {
-    const result = validatePattern(input)
+  function handleLoadPattern(pattern: PatternCardData) {
+    if (!guardDirtyForm()) return
+
+    const result = validatePattern(pattern)
     if (!result.ok) {
       setLoadErrors(result.errors)
       return
     }
     setLoadErrors(null)
-    setSourceFile(null)
+    setSourceFile(pattern.filename)
     populateForm(result.data, setProjectName, setYarn, setStartDate, setPatternLines)
-  }
-
-  async function handleLoadFromServer() {
-    if (!selectedPattern) return
-    if (!guardDirtyForm()) return
-
-    try {
-      const res = await fetch(`/api/patterns/${encodeURIComponent(selectedPattern)}`)
-      if (!res.ok) {
-        const body = await res.json()
-        setLoadErrors([body.error ?? 'Failed to load pattern from server.'])
-        return
-      }
-      const data = await res.json()
-      const result = validatePattern(data)
-      if (!result.ok) {
-        setLoadErrors(result.errors)
-        return
-      }
-      setLoadErrors(null)
-      setSourceFile(selectedPattern)
-      populateForm(result.data, setProjectName, setYarn, setStartDate, setPatternLines)
-    } catch {
-      setLoadErrors(['Failed to fetch pattern from server.'])
-    }
   }
 
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -108,7 +89,14 @@ function App() {
     reader.onload = () => {
       try {
         const parsed = JSON.parse(reader.result as string)
-        handleValidationResult(parsed)
+        const result = validatePattern(parsed)
+        if (!result.ok) {
+          setLoadErrors(result.errors)
+        } else {
+          setLoadErrors(null)
+          setSourceFile(null)
+          populateForm(result.data, setProjectName, setYarn, setStartDate, setPatternLines)
+        }
       } catch {
         setLoadErrors(['File is not valid JSON.'])
       }
@@ -118,7 +106,7 @@ function App() {
   }
 
   async function handleSubmit(e: SubmitEvent) {
-    e.preventDefault();
+    e.preventDefault()
     if (!window.confirm('Save this pattern?')) return
     await fetch('/api/savepattern', {
       method: 'POST',
@@ -133,100 +121,179 @@ function App() {
         patternLines,
         ...(sourceFile ? { sourceFile } : {}),
       }),
-    });
-
-    // Refresh the saved patterns list after saving
-    fetch('/api/patterns')
-      .then((res) => res.json())
-      .then((files: string[]) => setSavedPatterns(files))
-      .catch(() => {})
+    })
+    fetchPatterns()
   }
 
   return (
-    <Container maxW="lg" py={10}>
-      <Heading mb={8}>Hookbook</Heading>
-
-      {loadErrors && (
-        <Alert.Root status="error" mb={6}>
-          <Alert.Indicator />
-          <Box flex="1">
-            <Alert.Title>Failed to load pattern</Alert.Title>
-            <Alert.Description>
-              {loadErrors.map((err, i) => (
-                <Box key={i}>{err}</Box>
-              ))}
-            </Alert.Description>
-          </Box>
-          <CloseButton onClick={() => setLoadErrors(null)} position="relative" />
-        </Alert.Root>
-      )}
-
-      <Fieldset.Root mb={8}>
-        <Fieldset.Legend>Load Pattern</Fieldset.Legend>
-        <Stack gap={3}>
-          <Flex gap={2} align="end">
-            <Box flex="1">
-              <Field.Root>
-                <Field.Label>Saved patterns</Field.Label>
-                <NativeSelect.Root>
-                  <NativeSelect.Field
-                    value={selectedPattern}
-                    onChange={(e) => setSelectedPattern(e.target.value)}
-                  >
-                    <option value="">Select a pattern...</option>
-                    {savedPatterns.map((name) => (
-                      <option key={name} value={name}>{name}</option>
-                    ))}
-                  </NativeSelect.Field>
-                </NativeSelect.Root>
-              </Field.Root>
-            </Box>
-            <Button onClick={handleLoadFromServer} disabled={!selectedPattern} flexShrink={0}>
-              Load from Server
-            </Button>
-          </Flex>
-          <Field.Root>
-            <Field.Label>Or upload a file</Field.Label>
-            <Input type="file" accept=".json" onChange={handleFileUpload} />
-          </Field.Root>
-        </Stack>
-      </Fieldset.Root>
-
-      <Box as="form" onSubmit={handleSubmit}>
-        <Fieldset.Root>
-          <Stack gap={6}>
-            <LabeledTextInput
-              label="Project name"
-              name="projectname"
-              value={projectName}
-              onChange={setProjectName}
-              placeholder="Project name?"
-              required
-            />
-
-            <YarnFields yarn={yarn} onChange={setYarn} />
-
-            <Field.Root required>
-              <Field.Label>When did you start?</Field.Label>
-              <Input
-                type="date"
-                name="startdate"
-                id="startdate"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                required
-              />
-            </Field.Root>
-
-            <PatternEditor lines={patternLines} onChange={setPatternLines} />
-
-            <Button type="submit" colorPalette="teal" size="lg" w="full">
-              Save Pattern
-            </Button>
-          </Stack>
-        </Fieldset.Root>
+    <Box minH="100vh" bg="gray.50" _dark={{ bg: 'gray.900' }}>
+      <Box bg="white" _dark={{ bg: 'gray.800' }} borderBottom="3px solid" borderColor="purple.400" px={6} py={4} mb={6}>
+        <Container maxW="6xl">
+          <Heading
+            fontSize="3xl"
+            fontWeight="700"
+            style={{ fontFamily: "'Fredoka', sans-serif" }}
+            bgGradient="to-r"
+            gradientFrom="purple.500"
+            gradientTo="pink.400"
+            bgClip="text"
+          >
+            Hookbook
+          </Heading>
+        </Container>
       </Box>
-    </Container>
+
+      <Container maxW="6xl" px={6}>
+        {loadErrors && (
+          <Alert.Root status="warning" mb={6} borderRadius="xl">
+            <Alert.Indicator />
+            <Box flex="1">
+              <Alert.Title>Oops — something's off</Alert.Title>
+              <Alert.Description>
+                {loadErrors.map((err, i) => (
+                  <Box key={i}>{err}</Box>
+                ))}
+              </Alert.Description>
+            </Box>
+            <CloseButton onClick={() => setLoadErrors(null)} position="relative" />
+          </Alert.Root>
+        )}
+
+        <Flex gap={8} direction={{ base: 'column', md: 'row' }}>
+          {/* Left Panel — Form */}
+          <Box flex="3">
+            <Box
+              as="form"
+              onSubmit={handleSubmit}
+              bg="white"
+              _dark={{ bg: 'gray.800' }}
+              borderRadius="2xl"
+              boxShadow="sm"
+              p={8}
+            >
+              <Fieldset.Root>
+                <Stack gap={6}>
+                  <Fieldset.Root>
+                    <Fieldset.Legend fontWeight="bold" color="pink.500" fontSize="md" borderBottom="2px solid" borderColor="pink.200" pb={1}>
+                      Project
+                    </Fieldset.Legend>
+                    <LabeledTextInput
+                      label="Project name"
+                      name="projectname"
+                      value={projectName}
+                      onChange={setProjectName}
+                      placeholder="Project name?"
+                      required
+                    />
+                  </Fieldset.Root>
+
+                  <Fieldset.Root>
+                    <Fieldset.Legend fontWeight="bold" color="purple.500" fontSize="md" borderBottom="2px solid" borderColor="purple.200" pb={1}>
+                      Yarn
+                    </Fieldset.Legend>
+                    <YarnFields yarn={yarn} onChange={setYarn} />
+                  </Fieldset.Root>
+
+                  <Field.Root required>
+                    <Field.Label fontWeight="semibold">When did you start?</Field.Label>
+                    <Input
+                      type="date"
+                      name="startdate"
+                      id="startdate"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      required
+                      borderRadius="lg"
+                      borderWidth="1px"
+                      borderColor="gray.200"
+                      _dark={{ borderColor: 'gray.600' }}
+                    />
+                  </Field.Root>
+
+                  <PatternEditor lines={patternLines} onChange={setPatternLines} />
+
+                  <Button
+                    type="submit"
+                    size="lg"
+                    w="full"
+                    borderRadius="xl"
+                    colorPalette="purple"
+                    fontWeight="bold"
+                    fontSize="lg"
+                    _hover={{ transform: 'translateY(-2px)', boxShadow: 'lg', opacity: 0.9 }}
+                    transition="all 0.15s"
+                  >
+                    Save Pattern
+                  </Button>
+                </Stack>
+              </Fieldset.Root>
+            </Box>
+          </Box>
+
+          {/* Right Panel — My Patterns */}
+          <Box flex="2">
+            <Box
+              bg="white"
+              _dark={{ bg: 'gray.800' }}
+              borderRadius="2xl"
+              boxShadow="sm"
+              p={6}
+            >
+              <Text fontWeight="bold" fontSize="lg" mb={4} color="pink.500"
+                style={{ fontFamily: "'Fredoka', sans-serif" }}
+              >
+                My Patterns
+              </Text>
+
+              <Stack gap={3}>
+                {savedPatterns.length === 0 && (
+                  <Text fontSize="sm" color="gray.400" textAlign="center" py={4}>
+                    No saved patterns yet
+                  </Text>
+                )}
+                {savedPatterns.map((pattern) => (
+                  <PatternCard
+                    key={pattern.filename}
+                    pattern={pattern}
+                    isActive={sourceFile === pattern.filename}
+                    onClick={() => handleLoadPattern(pattern)}
+                  />
+                ))}
+              </Stack>
+
+              <Box mt={6} pt={4} borderTop="1px solid" borderColor="gray.200" _dark={{ borderColor: 'gray.600' }}>
+                <Text fontSize="sm" color="gray.500" mb={2} fontWeight="semibold">
+                  Or upload a file
+                </Text>
+                <Button
+                  as="label"
+                  htmlFor="file-upload"
+                  colorPalette="pink"
+                  variant="outline"
+                  borderRadius="lg"
+                  w="full"
+                  cursor="pointer"
+                  borderStyle="dashed"
+                  borderWidth="2px"
+                  _hover={{ bg: 'pink.50', borderColor: 'pink.400', transform: 'scale(1.02)' }}
+                  _dark={{ _hover: { bg: 'pink.950' } }}
+                  transition="all 0.15s"
+                >
+                  Upload .json file
+                  <Input
+                    id="file-upload"
+                    type="file"
+                    accept=".json"
+                    onChange={handleFileUpload}
+                    display="none"
+                  />
+                </Button>
+              </Box>
+            </Box>
+          </Box>
+        </Flex>
+      </Container>
+    </Box>
   )
 }
 

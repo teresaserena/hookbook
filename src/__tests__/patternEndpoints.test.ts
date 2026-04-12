@@ -3,7 +3,6 @@ import fs from 'fs'
 
 vi.mock('fs')
 
-// Import after mocking
 import { listPatternFiles, loadPatternFile } from '../index'
 
 describe('listPatternFiles', () => {
@@ -11,14 +10,46 @@ describe('listPatternFiles', () => {
     vi.resetAllMocks()
   })
 
-  it('returns only .json files from the data directory', () => {
+  it('returns pattern data objects for each .json file', () => {
     vi.mocked(fs.existsSync).mockReturnValue(true)
     ;(vi.mocked(fs.readdirSync) as ReturnType<typeof vi.fn>).mockReturnValue(
       ['butts.json', 'scarf.json', 'notes.txt']
     )
+    vi.mocked(fs.readFileSync)
+      .mockReturnValueOnce(JSON.stringify({
+        projectName: 'butts',
+        yarnGauge: 'worsted',
+        yarnColor: 'black',
+        startDate: '2026-04-02',
+        patternLines: ['2sc inc 2sc'],
+      }))
+      .mockReturnValueOnce(JSON.stringify({
+        projectName: 'scarf',
+        yarnGauge: 'dk',
+        yarnColor: 'blue',
+        startDate: '2026-03-15',
+        patternLines: ['10sc'],
+      }))
 
     const result = listPatternFiles()
-    expect(result).toEqual(['butts.json', 'scarf.json'])
+    expect(result).toEqual([
+      {
+        filename: 'butts.json',
+        projectName: 'butts',
+        yarnGauge: 'worsted',
+        yarnColor: 'black',
+        startDate: '2026-04-02',
+        patternLines: ['2sc inc 2sc'],
+      },
+      {
+        filename: 'scarf.json',
+        projectName: 'scarf',
+        yarnGauge: 'dk',
+        yarnColor: 'blue',
+        startDate: '2026-03-15',
+        patternLines: ['10sc'],
+      },
+    ])
   })
 
   it('returns empty array when data directory does not exist', () => {
@@ -26,6 +57,34 @@ describe('listPatternFiles', () => {
 
     const result = listPatternFiles()
     expect(result).toEqual([])
+  })
+
+  it('skips files that fail to parse', () => {
+    vi.mocked(fs.existsSync).mockReturnValue(true)
+    ;(vi.mocked(fs.readdirSync) as ReturnType<typeof vi.fn>).mockReturnValue(
+      ['good.json', 'bad.json']
+    )
+    vi.mocked(fs.readFileSync)
+      .mockReturnValueOnce(JSON.stringify({
+        projectName: 'good',
+        yarnGauge: 'bulky',
+        yarnColor: 'red',
+        startDate: '2026-01-01',
+        patternLines: ['sc'],
+      }))
+      .mockReturnValueOnce('not valid json{{{')
+
+    const result = listPatternFiles()
+    expect(result).toEqual([
+      {
+        filename: 'good.json',
+        projectName: 'good',
+        yarnGauge: 'bulky',
+        yarnColor: 'red',
+        startDate: '2026-01-01',
+        patternLines: ['sc'],
+      },
+    ])
   })
 })
 
