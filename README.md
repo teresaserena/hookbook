@@ -1,6 +1,6 @@
 # Hookbook
 
-A crochet pattern editor for freehanders. Create, edit, and save patterns row by row instead of scribbling in a notebook you can't undo. Does some basic versioning in case you need to go back and lose your place.
+A crochet pattern editor for freehanders. Create, edit, and save patterns row by row instead of scribbling in a notebook you can't undo. Every save creates a new version so you can always go back.
 
 ## What it does
 
@@ -8,6 +8,8 @@ A crochet pattern editor for freehanders. Create, edit, and save patterns row by
 - Automatic stitch counting that understands multipliers (`2sc` or `ch 3`), repeats (`8[sc inc sc]`), and special stitches (inc, dec, yo)
 - Track yarn details alongside your pattern
 - Save and reopen patterns for editing
+- Versioned saves — every save creates a snapshot, keeps the last 10 per pattern
+- Reference image uploads per pattern
 
 Built for patterns you're making up as you go, not following someone else's.
 
@@ -16,33 +18,28 @@ Built for patterns you're making up as you go, not following someone else's.
 - **Frontend:** React, TypeScript, Vite, Chakra UI
 - **Backend:** Express
 - **Testing:** Vitest, Playwright, Testing Library
-- **Storybook** for component development
 
 ## Getting started
 
 ```bash
 npm install
+npm run dev
 ```
 
-Run the client and server in separate terminals:
-
-```bash
-npm run dev:client
-npm run dev:server
-```
+This starts both the Vite dev server and the Express backend via concurrently.
 
 ## Scripts
 
 | Command | Description |
 |---|---|
-| `npm run dev:client` | Start the Vite dev server |
-| `npm run dev:server` | Start the Express backend |
+| `npm run dev` | Start client and server together |
+| `npm run dev:client` | Start the Vite dev server only |
+| `npm run dev:server` | Start the Express backend only |
 | `npm run build` | Build for production |
 | `npm test` | Run all tests |
 | `npm run test:watch` | Run tests in watch mode |
 | `npm run test:coverage` | Run tests with coverage |
 | `npm run lint` | Lint with ESLint |
-| `npm run storybook` | Launch Storybook on port 6006 |
 
 ## Stitch abbreviations
 
