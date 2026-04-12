@@ -32,7 +32,7 @@ export function validatePattern(input: unknown): ValidationResult {
     obj.patternLines.length === 0 ||
     !obj.patternLines.every((line): line is string => typeof line === 'string')
   ) {
-    errors.push('patternLines must be a non-empty array of strings.')
+    errors.push('patternLines must be a non-empty array of strings. Example: ["ch3 2 sc", "rep"].')
   }
 
   // Validate startDate format only if it passed the required-string check

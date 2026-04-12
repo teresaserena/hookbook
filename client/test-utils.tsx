@@ -1,6 +1,7 @@
 import { cleanup, render, type RenderOptions } from '@testing-library/react'
 import { afterEach } from 'vitest'
 import { Provider } from './components/ui/provider'
+import React from 'react'
 
 afterEach(() => {
   cleanup()

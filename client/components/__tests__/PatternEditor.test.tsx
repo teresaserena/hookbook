@@ -49,9 +49,10 @@ describe('PatternEditor', () => {
     window.confirm = vi.fn(() => true)
     render(<PatternEditor lines={['sc 6', 'inc 6']} onChange={handleChange} />)
     const removeButtons = screen.getAllByText('X')
+    // Display is reversed: first X button is the last line ("inc 6")
     await userEvent.click(removeButtons[0]!)
     expect(window.confirm).toHaveBeenCalled()
-    expect(handleChange).toHaveBeenCalledWith(['inc 6'])
+    expect(handleChange).toHaveBeenCalledWith(['sc 6'])
   })
 
   it('does not remove line when confirm is cancelled', async () => {

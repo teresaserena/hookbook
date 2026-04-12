@@ -3,7 +3,7 @@ import { yarnColorToCss } from '../utils/colorMap'
 import { parseStitchCount } from '../utils/stitchCounter'
 
 export interface PatternCardData {
-  filename: string
+  patternId: string
   projectName: string
   yarnGauge: string
   yarnColor: string
@@ -36,7 +36,6 @@ export function PatternCard({ pattern, isActive, onClick }: PatternCardProps) {
       borderRadius="xl"
       overflow="hidden"
       bg="white"
-      _dark={{ bg: 'gray.800', borderColor: isActive ? 'purple.300' : 'gray.600' }}
       boxShadow={isActive ? 'md' : 'sm'}
       _hover={{ boxShadow: 'md', borderColor: isActive ? 'purple.400' : 'gray.300' }}
       transition="all 0.15s"

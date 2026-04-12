@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
+import React from 'react'
 import { Box, Button, Container, Heading, Input, Stack, Field, Fieldset, Flex, Alert, CloseButton, Text } from '@chakra-ui/react'
 import { LabeledTextInput } from './components/LabeledTextInput'
 import { YarnFields, type YarnState } from './components/YarnFields'
 import { PatternEditor } from './components/PatternEditor'
 import { validatePattern, type PatternData } from './utils/validatePattern'
 import { PatternCard, type PatternCardData } from './components/PatternCard'
+import { ReferenceImages } from './components/ReferenceImages'
 
 function isFormDirty(projectName: string, yarn: YarnState, startDate: string, patternLines: string[]): boolean {
   return (
@@ -43,7 +45,7 @@ function App() {
   const [patternLines, setPatternLines] = useState<string[]>([])
 
   const [savedPatterns, setSavedPatterns] = useState<PatternCardData[]>([])
-  const [sourceFile, setSourceFile] = useState<string | null>(null)
+  const [patternId, setPatternId] = useState<string | null>(null)
   const [loadErrors, setLoadErrors] = useState<string[] | null>(null)
 
   useEffect(() => {
@@ -67,14 +69,19 @@ function App() {
   function handleLoadPattern(pattern: PatternCardData) {
     if (!guardDirtyForm()) return
 
-    const result = validatePattern(pattern)
-    if (!result.ok) {
-      setLoadErrors(result.errors)
-      return
-    }
-    setLoadErrors(null)
-    setSourceFile(pattern.filename)
-    populateForm(result.data, setProjectName, setYarn, setStartDate, setPatternLines)
+    fetch(`/api/patterns/${pattern.patternId}`)
+      .then((res) => res.json())
+      .then((data: unknown) => {
+        const result = validatePattern(data)
+        if (!result.ok) {
+          setLoadErrors(result.errors)
+          return
+        }
+        setLoadErrors(null)
+        setPatternId(pattern.patternId)
+        populateForm(result.data, setProjectName, setYarn, setStartDate, setPatternLines)
+      })
+      .catch(() => setLoadErrors(['Failed to load pattern.']))
   }
 
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -94,7 +101,7 @@ function App() {
           setLoadErrors(result.errors)
         } else {
           setLoadErrors(null)
-          setSourceFile(null)
+          setPatternId(null)
           populateForm(result.data, setProjectName, setYarn, setStartDate, setPatternLines)
         }
       } catch {
@@ -105,29 +112,51 @@ function App() {
     reader.readAsText(file)
   }
 
+  function buildPayload() {
+    return {
+      patternId,
+      projectName,
+      yarnName: yarn.name,
+      yarnGauge: yarn.gauge,
+      yarnMaterial: yarn.material,
+      yarnColor: yarn.color,
+      startDate,
+      patternLines,
+    }
+  }
+
+  async function savePattern(): Promise<{ success?: boolean; patternId?: string; error?: string }> {
+    const res = await fetch('/api/savepattern', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildPayload()),
+    })
+    return res.json()
+  }
+
+  async function createPattern(): Promise<string | null> {
+    const data = await savePattern()
+    if (data.success && data.patternId) {
+      setPatternId(data.patternId)
+      fetchPatterns()
+      return data.patternId
+    }
+    return null
+  }
+
   async function handleSubmit(e: SubmitEvent) {
     e.preventDefault()
     if (!window.confirm('Save this pattern?')) return
-    await fetch('/api/savepattern', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        projectName,
-        yarnName: yarn.name,
-        yarnGauge: yarn.gauge,
-        yarnMaterial: yarn.material,
-        yarnColor: yarn.color,
-        startDate,
-        patternLines,
-        ...(sourceFile ? { sourceFile } : {}),
-      }),
-    })
+    const data = await savePattern()
+    if (data.success && data.patternId) {
+      setPatternId(data.patternId)
+    }
     fetchPatterns()
   }
 
   return (
-    <Box minH="100vh" bg="gray.50" _dark={{ bg: 'gray.900' }}>
-      <Box bg="white" _dark={{ bg: 'gray.800' }} borderBottom="3px solid" borderColor="purple.400" px={6} py={4} mb={6}>
+    <Box minH="100vh" bg="gray.50">
+      <Box bg="white" borderBottom="3px solid" borderColor="purple.400" px={6} py={4} mb={6}>
         <Container maxW="6xl">
           <Heading
             fontSize="3xl"
@@ -166,7 +195,6 @@ function App() {
               as="form"
               onSubmit={handleSubmit}
               bg="white"
-              _dark={{ bg: 'gray.800' }}
               borderRadius="2xl"
               boxShadow="sm"
               p={8}
@@ -206,7 +234,6 @@ function App() {
                       borderRadius="lg"
                       borderWidth="1px"
                       borderColor="gray.200"
-                      _dark={{ borderColor: 'gray.600' }}
                     />
                   </Field.Root>
 
@@ -234,7 +261,6 @@ function App() {
           <Box flex="2">
             <Box
               bg="white"
-              _dark={{ bg: 'gray.800' }}
               borderRadius="2xl"
               boxShadow="sm"
               p={6}
@@ -253,15 +279,15 @@ function App() {
                 )}
                 {savedPatterns.map((pattern) => (
                   <PatternCard
-                    key={pattern.filename}
+                    key={pattern.patternId}
                     pattern={pattern}
-                    isActive={sourceFile === pattern.filename}
+                    isActive={patternId === pattern.patternId}
                     onClick={() => handleLoadPattern(pattern)}
                   />
                 ))}
               </Stack>
 
-              <Box mt={6} pt={4} borderTop="1px solid" borderColor="gray.200" _dark={{ borderColor: 'gray.600' }}>
+              <Box mt={6} pt={4} borderTop="1px solid" borderColor="gray.200">
                 <Text fontSize="sm" color="gray.500" mb={2} fontWeight="semibold">
                   Or upload a file
                 </Text>
@@ -276,7 +302,6 @@ function App() {
                   borderStyle="dashed"
                   borderWidth="2px"
                   _hover={{ bg: 'pink.50', borderColor: 'pink.400', transform: 'scale(1.02)' }}
-                  _dark={{ _hover: { bg: 'pink.950' } }}
                   transition="all 0.15s"
                 >
                   Upload .json file
@@ -288,6 +313,13 @@ function App() {
                     display="none"
                   />
                 </Button>
+              </Box>
+
+              <Box mt={6} pt={4} borderTop="1px solid" borderColor="gray.200">
+                <ReferenceImages
+                  patternId={patternId}
+                  onCreatePattern={createPattern}
+                />
               </Box>
             </Box>
           </Box>

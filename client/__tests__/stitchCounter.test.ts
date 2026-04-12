@@ -104,6 +104,28 @@ describe('parseStitchCount', () => {
     })
   })
 
+  describe('post-fix notation (ch3)', () => {
+    it('counts "ch3" as 3', () => {
+      expect(parseStitchCount('ch3')).toBe(3)
+    })
+
+    it('counts "ch 3" with space as 3', () => {
+      expect(parseStitchCount('ch 3')).toBe(3)
+    })
+
+    it('counts "ch3 sc" as 4', () => {
+      expect(parseStitchCount('ch3 sc')).toBe(4)
+    })
+
+    it('counts "sc ch3 sc" as 5', () => {
+      expect(parseStitchCount('sc ch3 sc')).toBe(5)
+    })
+
+    it('still handles pre-fix "3ch" as 3', () => {
+      expect(parseStitchCount('3ch')).toBe(3)
+    })
+  })
+
   describe('mixed text', () => {
     it('ignores non-stitch text', () => {
       expect(parseStitchCount('do 2sc here')).toBe(2)

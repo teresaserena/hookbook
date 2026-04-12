@@ -1,6 +1,3 @@
-// For more info, see https://github.com/storybookjs/eslint-plugin-storybook#configuration-flat-config-format
-import storybook from "eslint-plugin-storybook";
-
 import js from "@eslint/js";
 import globals from "globals";
 import tseslint from "@typescript-eslint/eslint-plugin";
@@ -9,7 +6,7 @@ import prettier from "eslint-config-prettier";
 import { defineConfig } from "eslint/config";
 
 export default defineConfig([
-  { ignores: ["dist/", "node_modules/", "client/**/*.js", "client/**/*.d.ts"] },
+  { ignores: ["dist/", "node_modules/", "client/**/*.js", "client/**/*.d.ts", "src/stories/"] },
   // Server (Node.js)
   {
     files: ["src/**/*.ts"],
@@ -40,5 +37,4 @@ export default defineConfig([
   },
   // Prettier must come last — disables formatting rules that conflict
   prettier,
-  ...storybook.configs["flat/recommended"]
 ]);
