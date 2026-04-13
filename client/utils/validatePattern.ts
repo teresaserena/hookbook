@@ -4,6 +4,7 @@ export interface PatternData {
   yarnGauge: string
   yarnMaterial: string
   yarnColor: string
+  hookSize: string
   startDate: string
   patternLines: string[]
 }
@@ -56,6 +57,7 @@ export function validatePattern(input: unknown): ValidationResult {
       yarnGauge: obj.yarnGauge as string,
       yarnMaterial: typeof obj.yarnMaterial === 'string' ? obj.yarnMaterial : '',
       yarnColor: obj.yarnColor as string,
+      hookSize: typeof obj.hookSize === 'string' ? obj.hookSize : '',
       startDate: obj.startDate as string,
       patternLines: obj.patternLines as string[],
     },

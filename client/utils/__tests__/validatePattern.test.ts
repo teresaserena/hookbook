@@ -20,6 +20,7 @@ describe('validatePattern', () => {
         yarnGauge: 'worsted',
         yarnMaterial: '',
         yarnColor: 'blue',
+        hookSize: '',
         startDate: '2026-01-15',
         patternLines: ['2sc inc 2sc', 'sc sc sc'],
       },
@@ -31,6 +32,7 @@ describe('validatePattern', () => {
       ...validPattern,
       yarnName: 'Cascade 220',
       yarnMaterial: 'wool',
+      hookSize: '5.0mm',
     })
     expect(result).toEqual({
       ok: true,
@@ -40,6 +42,7 @@ describe('validatePattern', () => {
         yarnGauge: 'worsted',
         yarnMaterial: 'wool',
         yarnColor: 'blue',
+        hookSize: '5.0mm',
         startDate: '2026-01-15',
         patternLines: ['2sc inc 2sc', 'sc sc sc'],
       },
@@ -69,7 +72,7 @@ describe('validatePattern', () => {
       expect(result.errors).toContain('Missing required field: yarnGauge')
       expect(result.errors).toContain('Missing required field: yarnColor')
       expect(result.errors).toContain('Missing required field: startDate')
-      expect(result.errors).toContain('patternLines must be a non-empty array of strings.')
+      expect(result.errors).toContain('patternLines must be a non-empty array of strings. Example: ["ch3 2 sc", "rep"].')
     }
   })
 
@@ -101,7 +104,7 @@ describe('validatePattern', () => {
     const result = validatePattern({ ...validPattern, patternLines: [] })
     expect(result.ok).toBe(false)
     if (!result.ok) {
-      expect(result.errors).toContain('patternLines must be a non-empty array of strings.')
+      expect(result.errors).toContain('patternLines must be a non-empty array of strings. Example: ["ch3 2 sc", "rep"].')
     }
   })
 
@@ -109,7 +112,7 @@ describe('validatePattern', () => {
     const result = validatePattern({ ...validPattern, patternLines: ['sc', 42] })
     expect(result.ok).toBe(false)
     if (!result.ok) {
-      expect(result.errors).toContain('patternLines must be a non-empty array of strings.')
+      expect(result.errors).toContain('patternLines must be a non-empty array of strings. Example: ["ch3 2 sc", "rep"].')
     }
   })
 
