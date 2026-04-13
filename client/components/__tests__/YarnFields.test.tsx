@@ -3,19 +3,20 @@ import { render, screen, userEvent } from '../../test-utils'
 import { YarnFields } from '../YarnFields'
 import type { YarnState } from '../YarnFields'
 
-const emptyYarn: YarnState = { name: '', gauge: '', material: '', color: '' }
+const emptyYarn: YarnState = { name: '', gauge: '', material: '', color: '', hookSize: '' }
 
 describe('YarnFields', () => {
-  it('renders all four labeled fields', () => {
+  it('renders all five labeled fields', () => {
     render(<YarnFields yarn={emptyYarn} onChange={() => {}} />)
     expect(screen.getByText('Brand')).toBeDefined()
     expect(screen.getByText('Weight')).toBeDefined()
     expect(screen.getByText('Material')).toBeDefined()
     expect(screen.getByText('Color')).toBeDefined()
+    expect(screen.getByText('Hook Size')).toBeDefined()
   })
 
   it('displays current yarn values in inputs', () => {
-    const yarn: YarnState = { name: 'Bernat', gauge: 'worsted', material: 'acrylic', color: 'red' }
+    const yarn: YarnState = { name: 'Bernat', gauge: 'worsted', material: 'acrylic', color: 'red', hookSize: '5.0mm' }
     render(<YarnFields yarn={yarn} onChange={() => {}} />)
     expect(document.getElementById('yarnname')).toHaveProperty('value', 'Bernat')
     expect(document.getElementById('yarngauge')).toHaveProperty('value', 'worsted')

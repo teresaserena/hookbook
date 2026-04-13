@@ -15,6 +15,7 @@ function isFormDirty(projectName: string, yarn: YarnState, startDate: string, pa
     yarn.gauge !== '' ||
     yarn.material !== '' ||
     yarn.color !== '' ||
+    yarn.hookSize !== '' ||
     startDate !== '' ||
     patternLines.length > 0
   )
@@ -33,6 +34,7 @@ function populateForm(
     gauge: data.yarnGauge,
     material: data.yarnMaterial,
     color: data.yarnColor,
+    hookSize: data.hookSize,
   })
   setStartDate(data.startDate)
   setPatternLines(data.patternLines)
@@ -40,7 +42,7 @@ function populateForm(
 
 function App() {
   const [projectName, setProjectName] = useState('')
-  const [yarn, setYarn] = useState<YarnState>({ name: '', gauge: '', material: '', color: '' })
+  const [yarn, setYarn] = useState<YarnState>({ name: '', gauge: '', material: '', color: '', hookSize: '' })
   const [startDate, setStartDate] = useState('')
   const [patternLines, setPatternLines] = useState<string[]>([])
 
@@ -120,6 +122,7 @@ function App() {
       yarnGauge: yarn.gauge,
       yarnMaterial: yarn.material,
       yarnColor: yarn.color,
+      hookSize: yarn.hookSize,
       startDate,
       patternLines,
     }

@@ -6,6 +6,7 @@ export interface YarnState {
   gauge: string
   material: string
   color: string
+  hookSize: string
 }
 
 interface YarnFieldsProps {
@@ -49,6 +50,13 @@ export function YarnFields({ yarn, onChange }: YarnFieldsProps) {
         onChange={(v) => setField('color', v)}
         placeholder="Yarn color"
         required
+      />
+      <LabeledTextInput
+        label="Hook Size"
+        name="hooksize"
+        value={yarn.hookSize}
+        onChange={(v) => setField('hookSize', v)}
+        placeholder="e.g. 5.0mm, G/6, H/8"
       />
     </Stack>
   )
