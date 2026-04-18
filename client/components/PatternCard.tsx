@@ -8,7 +8,7 @@ export interface PatternCardData {
   yarnGauge: string
   yarnColor: string
   startDate: string
-  patternLines: string[]
+  sections: { label: string; lines: string[] }[]
 }
 
 interface PatternCardProps {
@@ -17,12 +17,21 @@ interface PatternCardProps {
   onClick: () => void
 }
 
+function totalStitchesFor(sections: { lines: string[] }[]): number {
+  return sections.reduce((sum, section) => {
+    return (
+      sum +
+      section.lines.reduce((subSum, line, i) => {
+        const prev = i > 0 ? parseStitchCount(section.lines[i - 1]!) : undefined
+        return subSum + parseStitchCount(line, prev)
+      }, 0)
+    )
+  }, 0)
+}
+
 export function PatternCard({ pattern, isActive, onClick }: PatternCardProps) {
   const swatchColor = yarnColorToCss(pattern.yarnColor)
-  const totalStitches = pattern.patternLines.reduce((sum, line, i) => {
-    const prev = i > 0 ? parseStitchCount(pattern.patternLines[i - 1]) : undefined
-    return sum + parseStitchCount(line, prev)
-  }, 0)
+  const totalStitches = totalStitchesFor(pattern.sections ?? [])
 
   return (
     <Box

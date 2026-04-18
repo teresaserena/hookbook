@@ -13,6 +13,11 @@ app.use(express.static(path.join(__dirname, "../dist")));
 
 const DATA_DIR = path.join(__dirname, "../data");
 
+export interface PatternSection {
+  label: string;
+  lines: string[];
+}
+
 export interface PatternSummary {
   patternId: string;
   projectName: string;
@@ -20,7 +25,31 @@ export interface PatternSummary {
   latestVersion: string;
   yarnGauge: string;
   yarnColor: string;
-  patternLines: string[];
+  sections: PatternSection[];
+}
+
+function normaliseSectionsFromDisk(data: unknown): PatternSection[] {
+  if (data === null || typeof data !== "object") return [];
+  const obj = data as Record<string, unknown>;
+  if (Array.isArray(obj.sections)) {
+    return (obj.sections as unknown[])
+      .filter(
+        (s): s is PatternSection =>
+          s !== null &&
+          typeof s === "object" &&
+          typeof (s as PatternSection).label === "string" &&
+          Array.isArray((s as PatternSection).lines) &&
+          (s as PatternSection).lines.every((l) => typeof l === "string")
+      )
+      .map((s) => ({ label: s.label, lines: [...s.lines] }));
+  }
+  if (
+    Array.isArray(obj.patternLines) &&
+    (obj.patternLines as unknown[]).every((l) => typeof l === "string")
+  ) {
+    return [{ label: "", lines: [...(obj.patternLines as string[])] }];
+  }
+  return [];
 }
 
 export async function listPatterns(): Promise<PatternSummary[]> {
@@ -48,7 +77,7 @@ export async function listPatterns(): Promise<PatternSummary[]> {
         latestVersion: latest,
         yarnGauge: data.yarnGauge,
         yarnColor: data.yarnColor,
-        patternLines: data.patternLines,
+        sections: normaliseSectionsFromDisk(data),
       });
     } catch {
       // Skip directories without a valid versions/ subdirectory

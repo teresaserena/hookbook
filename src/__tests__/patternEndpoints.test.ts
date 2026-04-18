@@ -49,7 +49,7 @@ describe('listPatterns', () => {
         latestVersion: 'v_20260410-080000-000.json',
         yarnGauge: 'dk',
         yarnColor: 'blue',
-        patternLines: ['10sc'],
+        sections: [{ label: '', lines: ['10sc'] }],
       },
       {
         patternId: 'Hat_20260411-090000',
@@ -58,7 +58,43 @@ describe('listPatterns', () => {
         latestVersion: 'v_20260411-100000-000.json',
         yarnGauge: 'worsted',
         yarnColor: 'red',
-        patternLines: ['6sc'],
+        sections: [{ label: '', lines: ['6sc'] }],
+      },
+    ])
+  })
+
+  it('passes through sections-shape files unchanged', async () => {
+    vi.mocked(fsSync.existsSync).mockReturnValue(true)
+    ;(vi.mocked(fs.readdir) as ReturnType<typeof vi.fn>).mockResolvedValueOnce([
+      { name: 'Horse_20260417-080000', isDirectory: () => true },
+    ])
+    ;(vi.mocked(fs.readdir) as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(['v_20260417-080000-000.json'])
+
+    vi.mocked(fs.readFile).mockResolvedValueOnce(JSON.stringify({
+      projectName: 'Horse',
+      yarnGauge: 'worsted',
+      yarnColor: 'brown',
+      startDate: '2026-04-17',
+      sections: [
+        { label: 'Head', lines: ['ch 6', 'inc 6'] },
+        { label: 'Body', lines: ['sc 12'] },
+      ],
+    }))
+
+    const result = await listPatterns()
+    expect(result).toEqual([
+      {
+        patternId: 'Horse_20260417-080000',
+        projectName: 'Horse',
+        startDate: '2026-04-17',
+        latestVersion: 'v_20260417-080000-000.json',
+        yarnGauge: 'worsted',
+        yarnColor: 'brown',
+        sections: [
+          { label: 'Head', lines: ['ch 6', 'inc 6'] },
+          { label: 'Body', lines: ['sc 12'] },
+        ],
       },
     ])
   })
@@ -98,7 +134,7 @@ describe('listPatterns', () => {
         latestVersion: 'v_20260410-080000-000.json',
         yarnGauge: 'bulky',
         yarnColor: 'red',
-        patternLines: ['sc'],
+        sections: [{ label: '', lines: ['sc'] }],
       },
     ])
   })

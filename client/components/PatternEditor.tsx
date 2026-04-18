@@ -1,112 +1,131 @@
-import { useMemo, useState } from 'react'
-import { Badge, Button, Fieldset, Flex, Input, Stack, Text } from '@chakra-ui/react'
-import { parseStitchCount } from '../utils/stitchCounter'
+import { useRef } from 'react'
+import { Button, Fieldset, Stack } from '@chakra-ui/react'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { SectionBlock } from './SectionBlock'
+import { makeSection, type Section } from '../utils/sections'
 
 interface PatternEditorProps {
-  lines: string[]
-  onChange: (lines: string[]) => void
+  sections: Section[]
+  onChange: (sections: Section[]) => void
 }
 
-export function PatternEditor({ lines, onChange }: PatternEditorProps) {
-  const [currentLine, setCurrentLine] = useState('')
-  const [selectedLine, setSelectedLine] = useState<number | null>(null)
+function SortableSection(props: {
+  section: Section
+  canDelete: boolean
+  onLabelChange: (label: string) => void
+  onLinesChange: (lines: string[]) => void
+  onDelete: () => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
+    id: props.section.id,
+  })
 
-  const stitchCounts = useMemo(() =>
-    lines.map((line, i) => {
-      const prev = i > 0 ? parseStitchCount(lines[i - 1]) : undefined
-      return parseStitchCount(line, prev)
-    }),
-    [lines]
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <SectionBlock
+        section={props.section}
+        canDelete={props.canDelete}
+        dragHandleProps={{ ...attributes, ...listeners }}
+        onLabelChange={props.onLabelChange}
+        onLinesChange={props.onLinesChange}
+        onDelete={props.onDelete}
+      />
+    </div>
   )
+}
 
-  function handleAddLine() {
-    if (!currentLine.trim()) return
-    onChange([...lines, currentLine.trim()])
-    setCurrentLine('')
+export function PatternEditor({ sections, onChange }: PatternEditorProps) {
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
+  const editorRef = useRef<HTMLDivElement>(null)
+
+  function updateSection(index: number, patch: Partial<Section>) {
+    onChange(sections.map((s, i) => (i === index ? { ...s, ...patch } : s)))
   }
 
-  function handleUpdateLine(index: number, value: string) {
-    const updated = [...lines]
-    updated[index] = value
-    onChange(updated)
+  function deleteSection(index: number) {
+    onChange(sections.filter((_, i) => i !== index))
   }
 
-  function handleRemoveLine(index: number) {
-    if (!window.confirm(`Remove row ${index + 1}?`)) return
-    onChange(lines.filter((_, i) => i !== index))
-    if (selectedLine === index) setSelectedLine(null)
+  function handleAddSection() {
+    const onlyOne = sections.length === 1
+    const first = sections[0]
+    if (onlyOne && first && first.label === '' && first.lines.length > 0) {
+      const labelInput = editorRef.current?.querySelector<HTMLInputElement>(
+        `#section-label-${first.id}`
+      )
+      labelInput?.focus()
+      return
+    }
+    onChange([...sections, makeSection()])
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIndex = sections.findIndex((s) => s.id === active.id)
+    const newIndex = sections.findIndex((s) => s.id === over.id)
+    if (oldIndex < 0 || newIndex < 0) return
+    onChange(arrayMove(sections, oldIndex, newIndex))
   }
 
   return (
     <Fieldset.Root>
-      <Fieldset.Legend fontWeight="bold" color="pink.500" fontSize="md" borderBottom="2px solid" borderColor="pink.200" pb={1}>
+      <Fieldset.Legend
+        fontWeight="bold"
+        color="pink.500"
+        fontSize="md"
+        borderBottom="2px solid"
+        borderColor="pink.200"
+        pb={1}
+      >
         Pattern
       </Fieldset.Legend>
-      <Stack gap={3}>
-        <Flex gap={2}>
-          <Input
-            type="text"
-            id="pattern-new-line"
-            placeholder="e.g. 2sc 8[sc inc sc] 2sc"
-            value={currentLine}
-            onChange={(e) => setCurrentLine(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddLine(); } }}
-            borderRadius="lg"
-            borderWidth="1px"
-            borderColor="gray.200"
-          />
-          <Button onClick={handleAddLine} flexShrink={0} colorPalette="pink" borderRadius="lg" _hover={{ transform: 'scale(1.05)', opacity: 0.9 }} transition="all 0.15s"> Add </Button>
-        </Flex>
-
-        {Array.from({ length: lines.length }, (_, k) => lines.length - 1 - k).map((i, displayIdx) => {
-          const line = lines[i]
-          const stitchCount = stitchCounts[i]
-          return (
-          <Flex
-            key={i}
-            gap={2}
-            align="center"
-            bg={displayIdx % 2 === 0 ? 'gray.100' : 'transparent'}
-            px={2}
-            py={1}
-            borderRadius="lg"
-          >
-            <Text fontWeight="bold" flexShrink={0} w="2ch" textAlign="right" color="gray.400">{i + 1}.</Text>
-            <Input
-              type="text"
-              id={`pattern-line-${i}`}
-              value={line}
-              onChange={(e) => handleUpdateLine(i, e.target.value)}
-              onFocus={() => setSelectedLine(i)}
-              onBlur={() => setSelectedLine(null)}
-              borderRadius="lg"
-              bg={selectedLine === i ? 'white' : 'transparent'}
-              color={selectedLine === i ? 'gray.900' : 'inherit'}
-              borderWidth="1px"
-              borderColor={selectedLine === i ? 'pink.300' : 'gray.200'}
-              _hover={{ borderColor: 'pink.200' }}
-            />
-            {stitchCount > 0 && (
-              <Badge colorPalette="pink" variant="subtle" borderRadius="full" flexShrink={0}>
-                {stitchCount}
-              </Badge>
-            )}
-            <Button
-              size="sm"
-              colorPalette="red"
-              variant="ghost"
-              flexShrink={0}
-              onClick={() => handleRemoveLine(i)}
-              borderRadius="full"
-              _hover={{ bg: 'red.100', transform: 'scale(1.1)' }}
-              transition="all 0.15s"
-            >
-              X
-            </Button>
-          </Flex>
-          )
-        })}
-      </Stack>
+      <div ref={editorRef}>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={sections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+            <Stack gap={4}>
+              {sections.map((section, i) => (
+                <SortableSection
+                  key={section.id}
+                  section={section}
+                  canDelete={sections.length > 1}
+                  onLabelChange={(label) => updateSection(i, { label })}
+                  onLinesChange={(lines) => updateSection(i, { lines })}
+                  onDelete={() => deleteSection(i)}
+                />
+              ))}
+            </Stack>
+          </SortableContext>
+        </DndContext>
+        <Button
+          mt={4}
+          variant="outline"
+          colorPalette="purple"
+          borderRadius="lg"
+          onClick={handleAddSection}
+        >
+          + Add Section
+        </Button>
+      </div>
     </Fieldset.Root>
   )
 }

@@ -7,8 +7,10 @@ import { PatternEditor } from './components/PatternEditor'
 import { validatePattern, type PatternData } from './utils/validatePattern'
 import { PatternCard, type PatternCardData } from './components/PatternCard'
 import { ReferenceImages } from './components/ReferenceImages'
+import { makeSection, stripSectionIds, type Section } from './utils/sections'
 
-function isFormDirty(projectName: string, yarn: YarnState, startDate: string, patternLines: string[]): boolean {
+function isFormDirty(projectName: string, yarn: YarnState, startDate: string, sections: Section[]): boolean {
+  const anySectionContent = sections.some((s) => s.label !== '' || s.lines.length > 0)
   return (
     projectName !== '' ||
     yarn.name !== '' ||
@@ -17,7 +19,7 @@ function isFormDirty(projectName: string, yarn: YarnState, startDate: string, pa
     yarn.color !== '' ||
     yarn.hookSize !== '' ||
     startDate !== '' ||
-    patternLines.length > 0
+    anySectionContent
   )
 }
 
@@ -26,7 +28,7 @@ function populateForm(
   setProjectName: (v: string) => void,
   setYarn: (v: YarnState) => void,
   setStartDate: (v: string) => void,
-  setPatternLines: (v: string[]) => void
+  setSections: (v: Section[]) => void
 ) {
   setProjectName(data.projectName)
   setYarn({
@@ -37,14 +39,14 @@ function populateForm(
     hookSize: data.hookSize,
   })
   setStartDate(data.startDate)
-  setPatternLines(data.patternLines)
+  setSections(data.sections.map((s) => makeSection({ label: s.label, lines: s.lines })))
 }
 
 function App() {
   const [projectName, setProjectName] = useState('')
   const [yarn, setYarn] = useState<YarnState>({ name: '', gauge: '', material: '', color: '', hookSize: '' })
   const [startDate, setStartDate] = useState('')
-  const [patternLines, setPatternLines] = useState<string[]>([])
+  const [sections, setSections] = useState<Section[]>(() => [makeSection()])
 
   const [savedPatterns, setSavedPatterns] = useState<PatternCardData[]>([])
   const [patternId, setPatternId] = useState<string | null>(null)
@@ -62,7 +64,7 @@ function App() {
   }
 
   function guardDirtyForm(): boolean {
-    if (isFormDirty(projectName, yarn, startDate, patternLines)) {
+    if (isFormDirty(projectName, yarn, startDate, sections)) {
       return window.confirm('You have unsaved changes. Load anyway?')
     }
     return true
@@ -81,7 +83,7 @@ function App() {
         }
         setLoadErrors(null)
         setPatternId(pattern.patternId)
-        populateForm(result.data, setProjectName, setYarn, setStartDate, setPatternLines)
+        populateForm(result.data, setProjectName, setYarn, setStartDate, setSections)
       })
       .catch(() => setLoadErrors(['Failed to load pattern.']))
   }
@@ -104,7 +106,7 @@ function App() {
         } else {
           setLoadErrors(null)
           setPatternId(null)
-          populateForm(result.data, setProjectName, setYarn, setStartDate, setPatternLines)
+          populateForm(result.data, setProjectName, setYarn, setStartDate, setSections)
         }
       } catch {
         setLoadErrors(['File is not valid JSON.'])
@@ -124,7 +126,7 @@ function App() {
       yarnColor: yarn.color,
       hookSize: yarn.hookSize,
       startDate,
-      patternLines,
+      sections: stripSectionIds(sections),
     }
   }
 
@@ -240,7 +242,7 @@ function App() {
                     />
                   </Field.Root>
 
-                  <PatternEditor lines={patternLines} onChange={setPatternLines} />
+                  <PatternEditor sections={sections} onChange={setSections} />
 
                   <Button
                     type="submit"
