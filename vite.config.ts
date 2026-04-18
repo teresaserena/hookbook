@@ -18,12 +18,16 @@ export default defineConfig({
   },
   build: {
     outDir: '../dist',
-    emptyOutDir: true
+    emptyOutDir: true,
+    chunkSizeWarningLimit: 1000
   },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'client')
     }
+  },
+  optimizeDeps: {
+    include: ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities']
   },
   test: {
     projects: [
